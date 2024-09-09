@@ -1,0 +1,21 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: csv-ingestor
+  description: |
+    Load data from CSV files into database tables.
+  tags:
+    - python
+    - csv
+    - database
+    - etl
+  annotations:
+    github.com/project-slug: Media-Platforms/csv-ingestor
+  links:
+    - url: https://pypi.org/project/csv-ingestor/
+      title: csv-ingestor Pypi project page
+spec:
+  type: library
+  lifecycle: production
+  owner: core-tech

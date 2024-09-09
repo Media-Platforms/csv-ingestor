@@ -1,0 +1,13 @@
+[project]
+name = "csv-ingestor"
+version = "0.1.0"
+description = "Load data from CSV files into database tables"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Nic Wolff", email = "nwolff@hearst.com"}]
+license = {text = "MIT"}
+dependencies = ['boto3', 'sqlalchemy']
+
+[project.urls]
+Homepage = "https://github.com/Media-Platforms/csv-ingestor"
+Changelog = "https://github.com/Media-Platforms/csv-ingestor/releases"
