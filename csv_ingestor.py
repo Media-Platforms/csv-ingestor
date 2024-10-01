@@ -24,8 +24,8 @@ class CSVPicker(io.StringIO):
                 record = next(self.reader)
             except StopIteration:
                 return b''
-            self.modify_record(record)
             try:
+                self.modify_record(record)
                 self.check_skip(record)
             except SkipRecord:
                 continue
