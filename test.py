@@ -4,7 +4,7 @@ from datetime import date, datetime
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, patch
 
-from csv_ingestor import CSVPicker, Ingestor, SkipRecord
+from csv_ingestor import CSVPicker, Ingestor, NoIngestorFound, SkipRecord, ingest_file
 
 
 class MockPicker(CSVPicker):
@@ -19,14 +19,13 @@ class MockIngestor(Ingestor):
 
 
 class MockLogger:
-    def warning(*args):
-        pass
+    warning = error = lambda *args: None
 
 
 @patch('csv_ingestor.logging', new=MockLogger)
 @patch('sqlalchemy.create_engine')
 @patch.dict(os.environ, {'PGHOST': 'db.example.com'})
-class PickerTests(TestCase):
+class IngestorTests(TestCase):
 
     def test_base_picker(self, mock_create_engine):
         stream = io.StringIO('a,b,c\n1,2,3\n')
@@ -42,6 +41,17 @@ class PickerTests(TestCase):
         c = MockPicker(stream, columns)
         assert c.read() == '1,3\r\n'
         assert c.read() == b''
+
+
+    @patch('csv_ingestor.Ingestor.ingest')
+    def test_ingest_file(self, mock_create_engine, mock_ingest):
+        ingest_file('/some/path/to/test_data.20240512.csv.gz')
+        assert mock_ingest.called
+
+
+    def test_ingest_file_no_match(self, mock_create_engine):
+        with self.assertRaises(NoIngestorFound):
+            ingest_file('/some/path/to/test_bad.20240512.csv.gz')
 
 
     @patch('gzip.open', return_value=io.StringIO())
@@ -75,6 +85,24 @@ class PickerTests(TestCase):
         assert str(conn.execute.mock_calls[1][1][0]) == (
             'INSERT INTO some_table SELECT * FROM some_table_ingest ON CONFLICT DO NOTHING'
         )
+
+
+    @patch('csv_ingestor.Ingestor.ingest_to_table', side_effect=KeyError)
+    def test_ingest_setup_cleanup(self, mock_ingest_to_table, mock_create_engine):
+        ing = MockIngestor('/some/path/to/test_data.20240512.csv.gz')
+        ing.tables = [
+            {
+                'table': 'foo',
+                'csv_columns': ('bar', 'baz'),
+                'on_conflict': 'DO NOTHING',
+            },
+        ]
+        ing.setup_sql = 'SELECT 1'
+        ing.cleanup_sql = 'SELECT 2'
+        ing.ingest()
+        assert mock_ingest_to_table.called
+        assert str(mock_create_engine.mock_calls[1][1][0]) == 'SELECT 1'
+        assert str(mock_create_engine.mock_calls[2][1][0]) == 'SELECT 2'
 
 
     def test_Ingestor_create_partition(self, mock_create_engine):
