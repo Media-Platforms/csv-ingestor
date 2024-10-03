@@ -44,12 +44,14 @@ class CSVPicker(io.StringIO):
 
 class Ingestor:
     """Base for classes that can copy data from CSV files into database tables."""
-    csv_picker = CSVPicker
+    csv_picker: io.StringIO = CSVPicker
     filename_pattern: str | None = None
-    date_format = '%Y%m%d'
+    date_format: str = '%Y%m%d'
     tables: list[dict] = []
-    match = None
-    conn_str = expandvars('postgresql://$PGUSER:$PGPASSWORD@{PGHOST}:$PGPORT/$PGDATABASE')
+    match: re.Match = None
+    setup_sql: str = None
+    cleanup_sql: str = None
+    conn_str: str = expandvars('postgresql://$PGUSER:$PGPASSWORD@{PGHOST}:$PGPORT/$PGDATABASE')
 
     def __init_subclass__(cls):
         INGESTORS.append(cls)
@@ -64,11 +66,15 @@ class Ingestor:
         return self.match
 
     def ingest(self):
+        if self.setup_sql:
+            self.do_sql(self.setup_sql)
         for table in self.tables:
             try:
                 self.ingest_to_table(table)
             except Exception as e:  # pragma: no cover
                 logging.error(e)
+        if self.cleanup_sql:
+            self.do_sql(self.cleanup_sql)
 
     def ingest_to_table(self, table):
         table_name = table['table']
