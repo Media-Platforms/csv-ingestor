@@ -3,6 +3,7 @@ import gzip
 import io
 import logging
 import re
+from contextlib import nullcontext
 from datetime import datetime, timedelta
 from os import environ
 from os.path import expandvars
@@ -129,9 +130,8 @@ class Ingestor:
         self.do_sql(SQL.create_index.format(table, partition, partitioned_on))
 
     def do_sql(self, sql, params=None, conn=None):
-        if conn is None:
-            conn = self.db
-        return conn.execute(sa.text(sql), params)
+        with self.db.begin() if conn is None else nullcontext(conn) as conn:
+            return conn.execute(sa.text(sql), params)
 
 
 class SQL:

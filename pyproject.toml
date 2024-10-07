@@ -1,6 +1,6 @@
 [project]
 name = "csv-ingestor"
-version = "0.1.2"
+version = "0.1.3"
 description = "Load data from CSV files into database tables"
 readme = "README.md"
 requires-python = ">=3.10"
